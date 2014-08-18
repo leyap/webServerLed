@@ -78,39 +78,37 @@ void loop(void) {
 	// Try to get a client which is connected.
 	Adafruit_CC3000_ClientRef client = webServer.available();
 	if (client) {
-		if (client.available () > 0) {
-			if (client.available ()) {
-				client.read (databuffer, 40);
-				char* sub = strchr (databuffer, '\r');
-				if (sub > 0)
-					*sub = '\0';
-				sub = strstr (databuffer, "control");
-				if (!sub)
-					return ;
-				sub = strstr (sub, "led");
-				if (!sub)
-					return ; 
-				char *state = strstr (sub, "open");
-				if (state) {
-					Serial.println ("clicked open");
-					digitalWrite (12, HIGH);  
-					digitalWrite (13, HIGH);  
-				} 
-				state = strstr (sub, "close");
-				if (state) {
-					Serial.println ("clicked close");
-					digitalWrite (12, LOW);
-					digitalWrite (13, LOW);
-				}
-
+		while (client.available ()) {
+			client.read (databuffer, 40);
+			char* sub = strchr (databuffer, '\r');
+			if (sub > 0)
+				*sub = '\0';
+			sub = strstr (databuffer, "control");
+			if (!sub)
+				break;
+			sub = strstr (sub, "led");
+			if (!sub)
+				break; 
+			sub++;
+			if (strncmp (sub, "open", 4) == 0) {
+				Serial.println ("clicked open");
+				digitalWrite (12, HIGH);  
+				digitalWrite (13, HIGH);  
+			} 
+			else if (strncmp (sub, "close", 5) == 0) {
+				Serial.println ("clicked close");
+				digitalWrite (12, LOW);
+				digitalWrite (13, LOW);
 			}
+			break;
+
 		}
 		webServer.write ("<!DOCTYPE html>");
 		webServer.write ("<html>");
 		webServer.write ("<body>");
 		webServer.write ("<form action=\"control\" method=\"get\">");
-		webServer.write ("<button name=\"led13\" type=\"submit\" value=\"open\">Open13</button><br />");
-		webServer.write ("<button name=\"led13\" type=\"submit\" value=\"close\">Close13</button>");
+		webServer.write ("<button name=\"led\" type=\"submit\" value=\"open\">Open</button><br />");
+		webServer.write ("<button name=\"led\" type=\"submit\" value=\"close\">Close</button>");
 		webServer.write ("</form>");
 		webServer.write ("</body>");
 		webServer.write ("</html>");
@@ -122,7 +120,7 @@ void loop(void) {
 /**************************************************************************/
 /*!
   @brief  Tries to read the IP address and other connection details
- */
+  */
 /**************************************************************************/
 bool displayConnectionDetails(void) {
 	uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
