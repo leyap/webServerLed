@@ -26,8 +26,8 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 Adafruit_CC3000_Server webServer(LISTEN_PORT);
 
 void setup(void) {
-	pinMode (13, OUTPUT);
 	pinMode (12, OUTPUT);
+	pinMode (13, OUTPUT);
 	Serial.begin(115200);
 	Serial.println(F("Hello, CC3000!\n")); 
 	//while (!Serial);
@@ -73,23 +73,46 @@ void setup(void) {
 	Serial.println(F("Listening for connections..."));
 }
 
+uint32_t timeout;
+
 void loop(void) {
+	///////////////////////////////////////////////////////
+	if (millis () - timeout > 10000) {
+		timeout = millis ();
+		uint32_t checkip = cc3000.IP2U32 (209,208,4,56);
+		Adafruit_CC3000_Client checkClient = cc3000.connectTCP (checkip, 80);
+		if (checkClient.available () > 0) {
+			char checkipBuffer[20];
+			checkClient.read (checkipBuffer, 20);
+			Serial.println (checkipBuffer);
+		}
+	}
+
+
+
+	///////////////////////////////////////////////////////
 	char databuffer[45];
 	// Try to get a client which is connected.
 	Adafruit_CC3000_ClientRef client = webServer.available();
 	if (client) {
 		while (client.available ()) {
 			client.read (databuffer, 40);
+
 			char* sub = strchr (databuffer, '\r');
 			if (sub > 0)
 				*sub = '\0';
+			Serial.println (databuffer);
 			sub = strstr (databuffer, "control");
-			if (!sub)
+			if (!sub) {
+				Serial.println ("no control");			
 				break;
+			}
 			sub = strstr (sub, "led");
-			if (!sub)
+			if (!sub) {
+				Serial.println ("no led");			
 				break; 
-			sub++;
+			}
+			sub+=4;
 			if (strncmp (sub, "open", 4) == 0) {
 				Serial.println ("clicked open");
 				digitalWrite (12, HIGH);  
@@ -120,7 +143,7 @@ void loop(void) {
 /**************************************************************************/
 /*!
   @brief  Tries to read the IP address and other connection details
-  */
+ */
 /**************************************************************************/
 bool displayConnectionDetails(void) {
 	uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
@@ -128,7 +151,8 @@ bool displayConnectionDetails(void) {
 	if(!cc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv)) {
 		Serial.println(F("Unable to retrieve the IP Address!\r\n"));
 		return false;
-	} else {
+	} 
+	else {
 		Serial.print(F("\nIP Addr: ")); 
 		cc3000.printIPdotsRev(ipAddress);
 		Serial.print(F("\nNetmask: ")); 
@@ -143,5 +167,6 @@ bool displayConnectionDetails(void) {
 		return true;
 	}
 }
+
 
 
